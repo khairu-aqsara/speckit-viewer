@@ -37,6 +37,10 @@ The path must be a Spec Kit project root — a folder that contains `specs/`.
 - **Checklist** — `tasks.md` opens as a checklist with per-phase progress
   bars. Press `r` to see the raw Markdown instead.
 
+![Dashboard](docs/dashboard.png)
+
+![Checklist](docs/tasks.png)
+
 ## Phase inference
 
 Spec Kit has no per-feature status field, so the phase comes from which
