@@ -45,10 +45,11 @@ echo "speckit: downloading ${version} for ${os}/${arch}..."
 curl -fsSL "$url" -o "$tmp_dir/$archive"
 tar -xzf "$tmp_dir/$archive" -C "$tmp_dir"
 
-if [ -w "$INSTALL_DIR" ]; then
+if mkdir -p "$INSTALL_DIR" 2>/dev/null && [ -w "$INSTALL_DIR" ]; then
   mv "$tmp_dir/$BINARY" "$INSTALL_DIR/$BINARY"
 else
   echo "speckit: $INSTALL_DIR is not writable, using sudo..."
+  sudo mkdir -p "$INSTALL_DIR"
   sudo mv "$tmp_dir/$BINARY" "$INSTALL_DIR/$BINARY"
 fi
 chmod +x "$INSTALL_DIR/$BINARY"
