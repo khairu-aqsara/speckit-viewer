@@ -15,9 +15,16 @@ import (
 	"github.com/wenkhairu/speckit-viewer/internal/ui"
 )
 
+// version is stamped by goreleaser via -ldflags "-X main.version=...".
+var version = "dev"
+
 func main() {
 	root := "."
 	if len(os.Args) > 1 {
+		if os.Args[1] == "--version" || os.Args[1] == "-v" {
+			fmt.Println("speckit", version)
+			return
+		}
 		root = os.Args[1]
 	}
 	root, err := filepath.Abs(root)
@@ -25,7 +32,7 @@ func main() {
 		fatal(err)
 	}
 
-	app, err := ui.New(root)
+	app, err := ui.New(root, version)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "speckit: %v\n", err)
 		fmt.Fprintln(os.Stderr, "Point speckit at a Spec Kit project root (a folder containing specs/).")

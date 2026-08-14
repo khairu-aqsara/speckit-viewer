@@ -5,6 +5,7 @@ package ui
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"charm.land/bubbles/v2/list"
 	"charm.land/bubbles/v2/table"
@@ -44,6 +45,7 @@ type featureVM struct {
 // App is the root Bubble Tea model.
 type App struct {
 	root     string
+	version  string
 	project  model.Project
 	features []featureVM
 
@@ -67,9 +69,10 @@ type App struct {
 	rawMode      bool // for tasks.md: true = Markdown, false = checklist
 }
 
-// New scans root and builds the app model.
-func New(root string) (*App, error) {
-	a := &App{root: root, theme: newTheme(true), expanded: map[int]bool{}}
+// New scans root and builds the app model. version is the build version
+// shown in the status bar.
+func New(root, version string) (*App, error) {
+	a := &App{root: root, version: version, theme: newTheme(true), expanded: map[int]bool{}}
 	if err := a.rescan(); err != nil {
 		return nil, err
 	}
@@ -323,7 +326,8 @@ func (a *App) contentPaneWidth() int {
 }
 
 func (a *App) layout() {
-	innerHeight := max(4, a.height-3) // pane borders + status bar
+	// pane borders + status bar, plus the banner when the window fits it
+	innerHeight := max(4, a.height-3-bannerHeight(a.width, a.height))
 	a.nav.SetSize(sidebarWidth-2, innerHeight)
 	a.dash.SetColumns(dashboardColumns(a.width))
 	a.dash.SetWidth(a.width - 2)
@@ -348,6 +352,9 @@ func (a *App) View() tea.View {
 			contentStyle.Render(a.vp.View()),
 		)
 	}
+	if showBanner(a.width, a.height) {
+		body = banner(a.width, a.theme) + "\n" + body
+	}
 	v := tea.NewView(body + "\n" + a.statusBar())
 	v.AltScreen = true
 	v.WindowTitle = "speckit-viewer"
@@ -359,9 +366,21 @@ func (a *App) statusBar() string {
 	if a.screen == screenDashboard {
 		crumb = fmt.Sprintf("%d features", len(a.features))
 	}
-	hints := "↑↓ nav · Enter open · Tab switch pane · / filter · r raw · R refresh · d dashboard · c constitution · q quit"
+	version := "speckit " + a.version
 	left := a.theme.statusBar.Render(" " + crumb)
-	right := a.theme.statusHints.Render(hints + " ")
-	gap := max(1, a.width-lipgloss.Width(left)-lipgloss.Width(right))
-	return left + lipgloss.NewStyle().Width(gap).Render("") + right
+	// Drop hint groups from the right until the bar fits the width; the
+	// version stays visible even on narrow terminals.
+	hintGroups := []string{
+		"↑↓ nav", "Enter open", "Tab switch pane", "/ filter", "r raw",
+		"R refresh", "d dashboard", "c constitution", "q quit",
+	}
+	for n := len(hintGroups); n >= 0; n-- {
+		parts := append(append([]string{}, hintGroups[:n]...), version)
+		right := a.theme.statusHints.Render(strings.Join(parts, " · ") + " ")
+		gap := a.width - lipgloss.Width(left) - lipgloss.Width(right)
+		if gap >= 1 || n == 0 {
+			return left + lipgloss.NewStyle().Width(max(1, gap)).Render("") + right
+		}
+	}
+	return left
 }
