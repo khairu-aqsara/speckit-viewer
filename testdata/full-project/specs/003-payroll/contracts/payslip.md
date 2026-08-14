@@ -1,0 +1,3 @@
+# Contract: Payslip
+
+GET /payslip
