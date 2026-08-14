@@ -9,10 +9,16 @@ styled Markdown in your terminal.
 ## Install
 
 ```sh
-go install github.com/wenkhairu/speckit-viewer@latest
+brew install khairu-aqsara/tap/speckit
 ```
 
-Or download a binary from the GitHub releases page.
+Or download a binary from the [releases page](https://github.com/khairu-aqsara/speckit-viewer/releases).
+
+Or build from source:
+
+```sh
+go install github.com/wenkhairu/speckit-viewer@latest
+```
 
 ## Run
 

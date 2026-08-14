@@ -20,3 +20,16 @@ archives:
 
 changelog:
   use: git
+
+brews:
+  - repository:
+      owner: khairu-aqsara
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/khairu-aqsara/speckit-viewer"
+    description: "A two-pane terminal dashboard for GitHub Spec Kit projects"
+    install: |
+      bin.install "speckit"
+    test: |
+      system "#{bin}/speckit", "--version"
