@@ -6,15 +6,41 @@ A two-pane terminal dashboard for [GitHub Spec Kit](https://github.com/github/sp
 phase, and renders every artifact (`spec.md`, `plan.md`, `tasks.md`, …) as
 styled Markdown in your terminal.
 
+![Dashboard](docs/dashboard.png)
+
 ## Install
+
+**Homebrew** (macOS, Linux):
 
 ```sh
 brew install khairu-aqsara/tap/speckit
 ```
 
-Or download a binary from the [releases page](https://github.com/khairu-aqsara/speckit-viewer/releases).
+**Install script** (macOS, Linux):
 
-Or build from source:
+```sh
+curl -fsSL https://raw.githubusercontent.com/khairu-aqsara/speckit-viewer/main/install.sh | sh
+```
+
+Downloads the latest binary for your OS/arch into `/usr/local/bin`. Set
+`INSTALL_DIR` to install elsewhere.
+
+**Debian/Ubuntu** (`.deb`) **or Fedora/RHEL** (`.rpm`):
+
+Download the matching package from the
+[releases page](https://github.com/khairu-aqsara/speckit-viewer/releases),
+then:
+
+```sh
+sudo dpkg -i speckit_*.deb   # Debian/Ubuntu
+sudo rpm -i speckit_*.rpm    # Fedora/RHEL
+```
+
+**Manual download**: grab a binary from the
+[releases page](https://github.com/khairu-aqsara/speckit-viewer/releases)
+(macOS, Linux, Windows).
+
+**From source**:
 
 ```sh
 go install github.com/wenkhairu/speckit-viewer@latest
@@ -36,8 +62,6 @@ The path must be a Spec Kit project root — a folder that contains `specs/`.
   Enter on a feature expands its files; Enter on a file opens it.
 - **Checklist** — `tasks.md` opens as a checklist with per-phase progress
   bars. Press `r` to see the raw Markdown instead.
-
-![Dashboard](docs/dashboard.png)
 
 ![Checklist](docs/tasks.png)
 

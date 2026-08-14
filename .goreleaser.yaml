@@ -18,6 +18,16 @@ archives:
       - goos: windows
         formats: [zip]
 
+nfpms:
+  - id: speckit
+    package_name: speckit
+    vendor: khairu-aqsara
+    homepage: "https://github.com/khairu-aqsara/speckit-viewer"
+    maintainer: "Khairu Aqsara <wenkhairu@gmail.com>"
+    description: "A two-pane terminal dashboard for GitHub Spec Kit projects"
+    formats: [deb, rpm]
+    bindir: /usr/bin
+
 changelog:
   use: git
 
