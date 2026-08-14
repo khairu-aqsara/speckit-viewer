@@ -139,8 +139,43 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyPressMsg:
 		return a.handleKey(msg)
+
+	case tea.MouseWheelMsg:
+		return a.handleWheel(msg)
 	}
-	return a, nil
+
+	// Non-key messages (list filter results, cursor blinks) belong to the
+	// nav list: its filtering runs asynchronously and delivers matches via
+	// its own message type, which must reach the widget or / never narrows.
+	var cmd tea.Cmd
+	a.nav, cmd = a.nav.Update(msg)
+	return a, cmd
+}
+
+// handleWheel routes mouse-wheel events by screen and pointer position.
+// Only the viewport handles the wheel natively; the list and table get the
+// wheel translated to cursor moves.
+func (a *App) handleWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
+	up := msg.Button == tea.MouseWheelUp
+	if a.screen == screenDashboard {
+		if up {
+			a.dash.MoveUp(3)
+		} else {
+			a.dash.MoveDown(3)
+		}
+		return a, nil
+	}
+	if msg.X < sidebarWidth {
+		if up {
+			a.nav.CursorUp()
+		} else {
+			a.nav.CursorDown()
+		}
+		return a, nil
+	}
+	var cmd tea.Cmd
+	a.vp, cmd = a.vp.Update(msg)
+	return a, cmd
 }
 
 func (a *App) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
@@ -166,7 +201,7 @@ func (a *App) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return a, nil
 	case "R":
 		if err := a.rescan(); err == nil {
-			a.syncAfterRescan()
+			return a, a.syncAfterRescan()
 		}
 		return a, nil
 	case "tab":
@@ -176,6 +211,16 @@ func (a *App) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			} else {
 				a.focus = focusNav
 			}
+		}
+		return a, nil
+	case "/":
+		// Start filtering from anywhere in the browse screen, even when
+		// the content pane has focus.
+		if a.screen == screenBrowse {
+			a.focus = focusNav
+			var cmd tea.Cmd
+			a.nav, cmd = a.nav.Update(msg)
+			return a, cmd
 		}
 		return a, nil
 	case "r":
@@ -206,13 +251,18 @@ func (a *App) handleEnter() tea.Cmd {
 			a.screen = screenBrowse
 			a.focus = focusNav
 			a.openFeatureSpec(cursor)
-			a.selectNavFeature(cursor)
+			return a.selectNavFeature(cursor)
 		}
 		return nil
 	}
 	entry, ok := a.nav.SelectedItem().(navEntry)
 	if !ok {
 		return nil
+	}
+	// Choosing a result ends the search: a stale filter would otherwise
+	// hide the rows that a rebuild inserts (e.g. expanded files).
+	if a.nav.FilterState() != list.Unfiltered {
+		a.nav.ResetFilter()
 	}
 	switch entry.kind {
 	case navDashboard:
@@ -221,7 +271,7 @@ func (a *App) handleEnter() tea.Cmd {
 		a.openPath(a.project.ConstitutionPath, model.FileOther, nil, ".specify/memory/constitution.md")
 	case navFeature:
 		a.expanded[entry.featureIdx] = !a.expanded[entry.featureIdx]
-		a.rebuildNav(entry.key())
+		return a.rebuildNav(entry.key())
 	case navFile:
 		f := a.features[entry.featureIdx]
 		file := f.Files[entry.fileIdx]
@@ -236,32 +286,36 @@ func (a *App) handleEnter() tea.Cmd {
 
 // rebuildNav regenerates the flat list and restores the cursor to the entry
 // with the given key — the one piece of state the widget does not manage.
-func (a *App) rebuildNav(selectKey string) {
+// SetItems returns a command that re-runs an active filter; dropping it
+// leaves the filtered view empty, so it must reach the program loop.
+func (a *App) rebuildNav(selectKey string) tea.Cmd {
 	items := buildNavEntries(a.features, a.project.ConstitutionPath != "", a.expanded)
-	a.nav.SetItems(items)
+	cmd := a.nav.SetItems(items)
 	for i, item := range items {
 		if e, ok := item.(navEntry); ok && e.key() == selectKey {
 			a.nav.Select(i)
-			return
+			break
 		}
 	}
+	return cmd
 }
 
-func (a *App) selectNavFeature(featureIdx int) {
-	a.rebuildNav(navEntry{kind: navFeature, featureIdx: featureIdx}.key())
+func (a *App) selectNavFeature(featureIdx int) tea.Cmd {
+	return a.rebuildNav(navEntry{kind: navFeature, featureIdx: featureIdx}.key())
 }
 
-func (a *App) syncAfterRescan() {
+func (a *App) syncAfterRescan() tea.Cmd {
 	selected := ""
 	if e, ok := a.nav.SelectedItem().(navEntry); ok {
 		selected = e.key()
 	}
-	a.rebuildNav(selected)
+	cmd := a.rebuildNav(selected)
 	a.dash.SetRows(dashboardRows(a.features))
 	if a.currentPath != "" {
 		// Re-read the open file so R also refreshes the content pane.
 		a.reloadCurrent()
 	}
+	return cmd
 }
 
 func (a *App) openFeatureSpec(featureIdx int) {
@@ -358,6 +412,7 @@ func (a *App) View() tea.View {
 	v := tea.NewView(body + "\n" + a.statusBar())
 	v.AltScreen = true
 	v.WindowTitle = "speckit-viewer"
+	v.MouseMode = tea.MouseModeCellMotion
 	return v
 }
 
