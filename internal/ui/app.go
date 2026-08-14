@@ -353,7 +353,7 @@ func (a *App) View() tea.View {
 		)
 	}
 	if showBanner(a.width, a.height) {
-		body = banner(a.width, a.theme) + "\n" + body
+		body = banner(a.width, a.theme, a.version) + "\n" + body
 	}
 	v := tea.NewView(body + "\n" + a.statusBar())
 	v.AltScreen = true
